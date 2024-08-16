@@ -1,0 +1,675 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model affiliate_campaigns {
+  id                 Int                  @id @default(autoincrement()) @db.UnsignedInt
+  affiliate_id       BigInt               @db.UnsignedBigInt
+  name               String               @db.VarChar(255)
+  users              users                @relation(fields: [affiliate_id], references: [id], map: "affiliate_campaigns_ibfk_1")
+  affiliate_revshare affiliate_revshare[]
+  user_affiliates    user_affiliates[]
+
+  @@index([affiliate_id], map: "affiliate_id")
+}
+
+model affiliate_cpa {
+  id          Int     @id @db.UnsignedInt
+  campaign_id Int     @db.UnsignedInt
+  action      Int     @default(0) @db.UnsignedTinyInt
+  amount      BigInt  @default(0) @db.UnsignedBigInt
+  commission  Decimal @default(0.00) @db.Decimal(5, 2)
+}
+
+model affiliate_revshare {
+  id                  Int                 @id @default(autoincrement()) @db.UnsignedInt
+  campaign_id         Int                 @db.UnsignedInt
+  percent             Decimal             @db.Decimal(5, 2)
+  affiliate_campaigns affiliate_campaigns @relation(fields: [campaign_id], references: [id], map: "affiliate_revshare_ibfk_1")
+
+  @@index([campaign_id], map: "campaign_id")
+}
+
+model bets {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  type            String   @db.VarChar(16)
+  game_id         BigInt   @db.UnsignedBigInt
+  round_id        String   @db.VarChar(16)
+  provider_bet_id String   @db.VarChar(32)
+  user_id         BigInt   @db.UnsignedBigInt
+  account         Int      @db.UnsignedTinyInt
+  freespin        Int      @default(0) @db.UnsignedTinyInt
+  currency        String   @db.VarChar(3)
+  amount          BigInt   @db.UnsignedBigInt
+  balance         BigInt   @db.UnsignedBigInt
+  wager_amount    BigInt   @default(0) @db.UnsignedBigInt
+  wager_need      BigInt   @default(0) @db.UnsignedBigInt
+  date            DateTime @default(now()) @db.Timestamp(0)
+  users           users    @relation(fields: [user_id], references: [id], map: "bets_ibfk_1")
+  games           games    @relation(fields: [game_id], references: [id], map: "bets_ibfk_2")
+  wins            wins[]
+
+  @@index([game_id], map: "game_id")
+  @@index([round_id], map: "round-id")
+  @@index([user_id], map: "user-id")
+}
+
+model blacklist_countries {
+  country  String   @id @unique(map: "country") @db.VarChar(2)
+  admin_id BigInt   @db.UnsignedBigInt
+  date     DateTime @default(now()) @db.Timestamp(0)
+  users    users    @relation(fields: [admin_id], references: [id], map: "blacklist_countries_ibfk_1")
+
+  @@index([admin_id], map: "admin_id")
+}
+
+model blacklist_ip {
+  ip       String   @id @db.VarChar(39)
+  admin_id BigInt   @db.UnsignedBigInt
+  date     DateTime @default(now()) @db.Timestamp(0)
+  users    users    @relation(fields: [admin_id], references: [id], map: "blacklist_ip_ibfk_1")
+
+  @@index([admin_id], map: "admin_id")
+}
+
+model bonus_content {
+  bonus_id Int     @db.UnsignedInt
+  lang     String  @db.VarChar(2)
+  name     String  @db.VarChar(255)
+  content  String  @db.MediumText
+  bonuses  bonuses @relation(fields: [bonus_id], references: [id], map: "bonus_content_ibfk_1")
+
+  @@id([bonus_id, lang])
+}
+
+model bonus_deposits {
+  bonus_id    Int     @db.UnsignedInt
+  currency    String  @db.VarChar(3)
+  amount_from BigInt? @db.UnsignedBigInt
+  amount_to   BigInt? @db.UnsignedBigInt
+  bonuses     bonuses @relation(fields: [bonus_id], references: [id], map: "bonus_deposits_ibfk_1")
+
+  @@id([bonus_id, currency])
+}
+
+model bonus_promocodes {
+  bonus_id  Int     @id @db.UnsignedInt
+  promocode String  @db.VarChar(16)
+  bonuses   bonuses @relation(fields: [bonus_id], references: [id], map: "bonus_promocodes_ibfk_1")
+}
+
+model bonus_segments {
+  bonus_id   Int      @db.UnsignedInt
+  segment_id Int      @db.UnsignedInt
+  bonuses    bonuses  @relation(fields: [bonus_id], references: [id], map: "bonus_segments_ibfk_1")
+  segments   segments @relation(fields: [segment_id], references: [id], map: "bonus_segments_ibfk_2")
+
+  @@id([bonus_id, segment_id])
+  @@index([segment_id], map: "segment_id")
+}
+
+model bonus_users {
+  bonus_id Int     @db.UnsignedInt
+  user_id  BigInt  @db.UnsignedBigInt
+  bonuses  bonuses @relation(fields: [bonus_id], references: [id], map: "bonus_users_ibfk_1")
+  users    users   @relation(fields: [user_id], references: [id], map: "bonus_users_ibfk_2")
+
+  @@id([bonus_id, user_id])
+  @@index([user_id], map: "user_id")
+}
+
+model bonuses {
+  id               Int               @id @default(autoincrement()) @db.UnsignedInt
+  name             String            @db.VarChar(128)
+  type             Int               @db.UnsignedTinyInt
+  status           Int               @db.UnsignedTinyInt
+  use_period       Int               @default(0) @db.UnsignedTinyInt
+  use_count        Int               @default(1) @db.UnsignedTinyInt
+  date_start       DateTime?         @db.Timestamp(0)
+  date_end         DateTime?         @db.Timestamp(0)
+  bonus_content    bonus_content[]
+  bonus_deposits   bonus_deposits[]
+  bonus_promocodes bonus_promocodes?
+  bonus_segments   bonus_segments[]
+  bonus_users      bonus_users[]
+}
+
+model game_aggregators {
+  id                Int                 @id @db.UnsignedTinyInt
+  name              String              @db.VarChar(255)
+  enabled           Int                 @default(1) @db.UnsignedTinyInt
+  providers         String?             @db.LongText
+  games             games[]
+  segment_providers segment_providers[]
+}
+
+model game_categories {
+  id                      Int                       @id @default(autoincrement()) @db.UnsignedSmallInt
+  alias                   String                    @unique(map: "alias") @db.VarChar(255)
+  name                    String                    @db.VarChar(255)
+  game_categorization     game_categorization[]
+  game_category_countries game_category_countries[]
+}
+
+model game_categorization {
+  game_id         BigInt          @db.UnsignedBigInt
+  cat_id          Int             @db.UnsignedSmallInt
+  sort            Int             @default(0) @db.UnsignedSmallInt
+  games           games           @relation(fields: [game_id], references: [id], map: "game_categorization_ibfk_1")
+  game_categories game_categories @relation(fields: [cat_id], references: [id], map: "game_categorization_ibfk_2")
+
+  @@id([game_id, cat_id])
+  @@index([cat_id], map: "cat_id")
+}
+
+model game_category_countries {
+  category_id     Int             @db.UnsignedSmallInt
+  country         String          @db.VarChar(2)
+  game_categories game_categories @relation(fields: [category_id], references: [id], map: "game_category_countries_ibfk_1")
+
+  @@id([category_id, country])
+}
+
+model game_providers {
+  id                Int                 @id @db.UnsignedInt
+  name              String              @db.VarChar(255)
+  sort              Int                 @default(0) @db.UnsignedInt
+  enabled           Int                 @default(1) @db.UnsignedTinyInt
+  games             games[]
+  segment_providers segment_providers[]
+}
+
+model games {
+  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  aggregator          Int                   @db.UnsignedTinyInt
+  provider            Int                   @db.UnsignedInt
+  provider_game_id    String                @db.VarChar(64)
+  name                String                @db.VarChar(255)
+  type                Int                   @db.UnsignedTinyInt
+  status              Int                   @default(0) @db.UnsignedTinyInt
+  image               Bytes                 @db.VarBinary(255)
+  bets                bets[]
+  game_categorization game_categorization[]
+  game_providers      game_providers        @relation(fields: [provider], references: [id], map: "games_ibfk_1")
+  game_aggregators    game_aggregators      @relation(fields: [aggregator], references: [id], map: "games_ibfk_2")
+  jackpot_games       jackpot_games[]
+  user_favorite_games user_favorite_games[]
+
+  @@index([aggregator], map: "aggregator")
+  @@index([provider], map: "provider")
+}
+
+model jackpot_content {
+  jackpot_id Int      @db.UnsignedInt
+  lang       String   @db.VarChar(2)
+  name       String   @db.VarChar(255)
+  content    String   @db.MediumText
+  jackpots   jackpots @relation(fields: [jackpot_id], references: [id], map: "jackpot_content_ibfk_1")
+
+  @@id([jackpot_id, lang])
+}
+
+model jackpot_games {
+  jackpot_id Int      @db.UnsignedInt
+  game_id    BigInt   @db.UnsignedBigInt
+  jackpots   jackpots @relation(fields: [jackpot_id], references: [id], map: "jackpot_games_ibfk_1")
+  games      games    @relation(fields: [game_id], references: [id], map: "jackpot_games_ibfk_2")
+
+  @@id([jackpot_id, game_id])
+  @@index([game_id], map: "game_id")
+}
+
+model jackpot_group_content {
+  jackpot_group_id Int            @db.UnsignedInt
+  lang             String         @db.VarChar(2)
+  name             String         @db.VarChar(255)
+  content          String         @db.MediumText
+  jackpot_groups   jackpot_groups @relation(fields: [jackpot_group_id], references: [id], map: "jackpot_group_content_ibfk_1")
+
+  @@id([jackpot_group_id, lang])
+}
+
+model jackpot_groups {
+  id                    Int                     @id @default(autoincrement()) @db.UnsignedInt
+  name                  String                  @db.VarChar(255)
+  status                Int                     @db.UnsignedTinyInt
+  jackpot_group_content jackpot_group_content[]
+  jackpots              jackpots[]
+}
+
+model jackpots {
+  id              Int               @id @default(autoincrement()) @db.UnsignedInt
+  group_id        Int               @db.UnsignedInt
+  status          Int               @db.UnsignedTinyInt
+  name            String            @db.VarChar(255)
+  currency        String            @db.VarChar(3)
+  percent         Decimal           @db.Decimal(5, 2)
+  amount          BigInt            @default(0) @db.UnsignedBigInt
+  payout          BigInt            @db.UnsignedBigInt
+  min_bet         BigInt            @db.UnsignedBigInt
+  date_start      DateTime?         @db.Timestamp(0)
+  date_end        DateTime?         @db.Timestamp(0)
+  jackpot_content jackpot_content[]
+  jackpot_games   jackpot_games[]
+  jackpot_groups  jackpot_groups    @relation(fields: [group_id], references: [id], map: "jackpots_ibfk_1")
+
+  @@index([group_id], map: "group_id")
+}
+
+model page_content {
+  page_id          Int    @db.UnsignedInt
+  lang             String @db.VarChar(2)
+  title            String @db.VarChar(255)
+  meta_keywords    String @db.VarChar(255)
+  meta_description String @db.VarChar(255)
+  content          String @db.MediumText
+  pages            pages  @relation(fields: [page_id], references: [id], map: "page_content_ibfk_1")
+
+  @@id([page_id, lang])
+}
+
+model pages {
+  id           Int            @id @default(autoincrement()) @db.UnsignedInt
+  slug         String         @unique(map: "slug") @db.VarChar(255)
+  name         String         @db.VarChar(255)
+  page_content page_content[]
+}
+
+model reward_amounts {
+  reward_id     Int     @db.UnsignedInt
+  currency      String  @db.VarChar(3)
+  amount        BigInt  @db.UnsignedBigInt
+  percent       Decimal @default(0.00) @db.Decimal(5, 2)
+  account       Int     @db.UnsignedTinyInt
+  wager_cf      Decimal @default(0.00) @db.Decimal(5, 2)
+  wager_bet_min BigInt  @default(0) @db.UnsignedBigInt
+  wager_bet_max BigInt  @default(0) @db.UnsignedBigInt
+  rewards       rewards @relation(fields: [reward_id], references: [id], map: "reward_amounts_ibfk_1")
+
+  @@id([reward_id, currency])
+}
+
+model reward_freespins {
+  reward_id  Int     @db.UnsignedInt
+  currency   String  @db.VarChar(3)
+  number     Int     @db.UnsignedInt
+  bet_amount BigInt  @db.UnsignedBigInt
+  win_wager  Decimal @db.Decimal(5, 2)
+  rewards    rewards @relation(fields: [reward_id], references: [id], map: "reward_freespins_ibfk_1")
+
+  @@id([reward_id, currency])
+}
+
+model reward_points {
+  reward_id Int     @id @db.UnsignedInt
+  points    BigInt  @db.UnsignedBigInt
+  rewards   rewards @relation(fields: [reward_id], references: [id], map: "reward_points_ibfk_1")
+}
+
+model reward_queue {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  reward_id Int      @db.UnsignedInt
+  user_id   BigInt   @db.UnsignedBigInt
+  status    Int      @db.UnsignedTinyInt
+  date      DateTime @default(now()) @db.Timestamp(0)
+  rewards   rewards  @relation(fields: [reward_id], references: [id], map: "reward_queue_ibfk_1")
+  users     users    @relation(fields: [user_id], references: [id], map: "reward_queue_ibfk_2")
+
+  @@index([reward_id], map: "reward_id")
+  @@index([status], map: "status")
+  @@index([user_id], map: "user_id")
+}
+
+model rewards {
+  id               Int                @id @default(autoincrement()) @db.UnsignedInt
+  category         Int                @db.UnsignedTinyInt
+  obj_id           Int                @db.UnsignedInt
+  name             String             @db.VarChar(255)
+  reward_amounts   reward_amounts[]
+  reward_freespins reward_freespins[]
+  reward_points    reward_points?
+  reward_queue     reward_queue[]
+
+  @@unique([category, obj_id], map: "category")
+}
+
+model roles {
+  id                   Int          @id @default(autoincrement()) @db.UnsignedInt
+  name                 String       @db.VarChar(128)
+  is_access_games      Int          @db.UnsignedTinyInt
+  is_access_users      Int          @db.UnsignedTinyInt
+  is_access_finances   Int          @db.UnsignedTinyInt
+  is_access_cms        Int          @default(0) @db.UnsignedTinyInt
+  is_access_bonuses    Int          @db.UnsignedTinyInt
+  is_access_newletters Int          @db.UnsignedTinyInt
+  is_access_settings   Int          @db.UnsignedTinyInt
+  user_roles           user_roles[]
+}
+
+model segment_bet_limits {
+  segment_id Int      @db.UnsignedInt
+  game_type  Int      @db.TinyInt
+  currency   String   @db.VarChar(3)
+  min        BigInt   @db.UnsignedBigInt
+  max        BigInt   @db.UnsignedBigInt
+  segments   segments @relation(fields: [segment_id], references: [id], map: "segment_bet_limits_ibfk_1")
+
+  @@id([segment_id, game_type, currency])
+}
+
+model segment_limits {
+  segment_id       Int      @db.UnsignedInt
+  currency         String   @db.VarChar(3)
+  transaction_type Int      @db.UnsignedTinyInt
+  period           Int      @db.UnsignedTinyInt
+  amount           BigInt   @db.UnsignedBigInt
+  segments         segments @relation(fields: [segment_id], references: [id], map: "segment_limits_ibfk_1")
+
+  @@id([segment_id, currency, transaction_type])
+}
+
+model segment_providers {
+  segment_id       Int              @db.UnsignedInt
+  aggregator_id    Int              @db.UnsignedTinyInt
+  provider_id      Int              @db.UnsignedInt
+  segments         segments         @relation(fields: [segment_id], references: [id], map: "segment_providers_ibfk_1")
+  game_aggregators game_aggregators @relation(fields: [aggregator_id], references: [id], map: "segment_providers_ibfk_2")
+  game_providers   game_providers   @relation(fields: [provider_id], references: [id], map: "segment_providers_ibfk_3")
+
+  @@id([segment_id, aggregator_id, provider_id])
+  @@index([aggregator_id], map: "aggregator_id")
+  @@index([provider_id], map: "provider_id")
+}
+
+model segment_trn_amounts {
+  segment_id       Int      @db.UnsignedInt
+  currency         String   @db.VarChar(3)
+  transaction_type Int      @db.UnsignedTinyInt
+  from             BigInt   @db.UnsignedBigInt
+  to               BigInt   @db.UnsignedBigInt
+  hours            Int      @db.UnsignedInt
+  segments         segments @relation(fields: [segment_id], references: [id], map: "segment_trn_amounts_ibfk_1")
+
+  @@id([segment_id, currency, transaction_type])
+}
+
+model segment_trn_count {
+  segment_id       Int      @db.UnsignedInt
+  transaction_type Int      @db.UnsignedTinyInt
+  from             BigInt   @db.UnsignedBigInt
+  to               BigInt   @db.UnsignedBigInt
+  hours            Int      @db.UnsignedInt
+  segments         segments @relation(fields: [segment_id], references: [id], map: "segment_trn_count_ibfk_1")
+
+  @@id([segment_id, transaction_type])
+}
+
+model segments {
+  id                      Int                       @id @default(autoincrement()) @db.UnsignedInt
+  name                    String                    @db.VarChar(255)
+  description             String?                   @db.TinyText
+  status                  Int                       @db.UnsignedTinyInt
+  color                   String                    @db.VarChar(6)
+  country                 String?                   @db.VarChar(2)
+  age_from                Int?                      @db.UnsignedTinyInt
+  age_to                  Int?                      @db.UnsignedTinyInt
+  last_activity_hours     Int?                      @db.UnsignedInt
+  bonus_segments          bonus_segments[]
+  segment_bet_limits      segment_bet_limits[]
+  segment_limits          segment_limits[]
+  segment_providers       segment_providers[]
+  segment_trn_amounts     segment_trn_amounts[]
+  segment_trn_count       segment_trn_count[]
+  template_email_segments template_email_segments[]
+  user_segments           user_segments[]
+}
+
+model settings {
+  id    String @id @db.VarChar(64)
+  value String @db.LongText
+}
+
+model template_email_content {
+  id              Int             @id @default(autoincrement()) @db.UnsignedInt
+  template_id     Int             @db.UnsignedInt
+  language        String          @db.VarChar(2)
+  subject         String          @db.VarChar(128)
+  from_email      String          @db.VarChar(128)
+  from_name       String          @db.VarChar(128)
+  html            String          @db.Text
+  text            String          @db.Text
+  templates_email templates_email @relation(fields: [template_id], references: [id], map: "template_email_content_ibfk_1")
+
+  @@unique([template_id, language], map: "template_id")
+  @@index([template_id], map: "template_id_2")
+}
+
+model template_email_segments {
+  template_id     Int             @db.UnsignedInt
+  segment_id      Int             @db.UnsignedInt
+  templates_email templates_email @relation(fields: [template_id], references: [id], map: "template_email_segments_ibfk_1")
+  segments        segments        @relation(fields: [segment_id], references: [id], map: "template_email_segments_ibfk_2")
+
+  @@id([template_id, segment_id])
+  @@index([segment_id], map: "segment_id")
+}
+
+model template_sms_content {
+  id            Int           @id @default(autoincrement()) @db.UnsignedInt
+  template_id   Int           @db.UnsignedInt
+  language      Bytes         @db.VarBinary(2)
+  text          String        @db.Text
+  templates_sms templates_sms @relation(fields: [template_id], references: [id], map: "template_sms_content_ibfk_1")
+
+  @@unique([template_id, language], map: "template_id_2")
+  @@index([template_id], map: "template_id")
+}
+
+model templates_email {
+  id                      Int                       @id @default(autoincrement()) @db.UnsignedInt
+  tag                     String                    @unique(map: "tag") @db.VarChar(64)
+  name                    String                    @db.VarChar(128)
+  default_language        String                    @db.VarChar(2)
+  template_email_content  template_email_content[]
+  template_email_segments template_email_segments[]
+}
+
+model templates_sms {
+  id                   Int                    @id @default(autoincrement()) @db.UnsignedInt
+  tag                  String                 @unique(map: "tag") @db.VarChar(64)
+  name                 String                 @db.VarChar(128)
+  default_language     Bytes                  @db.VarBinary(2)
+  template_sms_content template_sms_content[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model transactions {
+  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id       BigInt    @db.UnsignedBigInt
+  account       Int       @db.UnsignedTinyInt
+  type          Int       @db.UnsignedTinyInt
+  status        Int       @default(0) @db.UnsignedTinyInt
+  method        String    @db.VarChar(255)
+  payment_id    String?   @db.VarChar(64)
+  amount        BigInt    @db.UnsignedBigInt
+  balance       BigInt    @db.UnsignedBigInt
+  currency      String    @db.VarChar(3)
+  date_create   DateTime  @default(now()) @db.Timestamp(0)
+  date_complete DateTime? @db.Timestamp(0)
+  users         users     @relation(fields: [user_id], references: [id], map: "transactions_ibfk_1")
+
+  @@index([user_id], map: "user-id")
+}
+
+model user_affiliates {
+  user_id             BigInt              @db.UnsignedBigInt
+  campaign_id         Int                 @db.UnsignedInt
+  users               users               @relation(fields: [user_id], references: [id], map: "user_affiliates_ibfk_1")
+  affiliate_campaigns affiliate_campaigns @relation(fields: [campaign_id], references: [id], map: "user_affiliates_ibfk_3")
+
+  @@id([user_id, campaign_id])
+  @@index([campaign_id], map: "campaign_id")
+}
+
+model user_auth {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id    BigInt   @db.UnsignedBigInt
+  ip         String   @db.VarChar(39)
+  user_agent String   @db.VarChar(255)
+  date       DateTime @default(now()) @db.Timestamp(0)
+  users      users    @relation(fields: [user_id], references: [id], map: "user_auth_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model user_favorite_games {
+  user_id BigInt @db.UnsignedBigInt
+  game_id BigInt @db.UnsignedBigInt
+  users   users  @relation(fields: [user_id], references: [id], map: "user_favorite_games_ibfk_1")
+  games   games  @relation(fields: [game_id], references: [id], map: "user_favorite_games_ibfk_2")
+
+  @@id([user_id, game_id])
+  @@index([game_id], map: "game_id")
+}
+
+model user_file_comments {
+  file_id    BigInt     @id @db.UnsignedBigInt
+  comment    String     @db.VarChar(255)
+  user_files user_files @relation(fields: [file_id], references: [id], map: "user_file_comments_ibfk_1")
+}
+
+model user_files {
+  id                 BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id            BigInt              @db.UnsignedBigInt
+  type               Int                 @default(0) @db.UnsignedTinyInt
+  path               String              @db.VarChar(255)
+  status             Int                 @default(0) @db.UnsignedTinyInt
+  user_file_comments user_file_comments?
+  users              users               @relation(fields: [user_id], references: [id], map: "user_files_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model user_limits {
+  user_id          BigInt @db.UnsignedBigInt
+  transaction_type Int    @db.UnsignedTinyInt
+  period           Int    @db.UnsignedTinyInt
+  amount           BigInt @db.UnsignedBigInt
+  users            users  @relation(fields: [user_id], references: [id], map: "user_limits_ibfk_1")
+
+  @@id([user_id, transaction_type, period])
+}
+
+model user_profiles {
+  user_id      BigInt    @id @db.UnsignedBigInt
+  first_name   String    @default("") @db.VarChar(64)
+  last_name    String    @default("") @db.VarChar(64)
+  date_birth   DateTime? @db.Date
+  gender       String?   @db.VarChar(1)
+  city         String    @default("") @db.VarChar(255)
+  state        String    @default("") @db.VarChar(255)
+  postcode     String    @default("") @db.VarChar(32)
+  address      String    @default("") @db.VarChar(255)
+  timezone     Int       @default(0)
+  phone_code   String?   @db.VarChar(3)
+  phone_number String?   @db.VarChar(16)
+  users        users     @relation(fields: [user_id], references: [id], map: "user_profiles_ibfk_1")
+}
+
+model user_roles {
+  user_id BigInt @db.UnsignedBigInt
+  role_id Int    @db.UnsignedInt
+  users   users  @relation(fields: [user_id], references: [id], map: "user_roles_ibfk_1")
+  roles   roles  @relation(fields: [role_id], references: [id], map: "user_roles_ibfk_2")
+
+  @@id([user_id, role_id])
+  @@index([role_id], map: "role_id")
+}
+
+model user_segments {
+  user_id    BigInt   @db.UnsignedBigInt
+  segment_id Int      @db.UnsignedInt
+  users      users    @relation(fields: [user_id], references: [id], map: "user_segments_ibfk_1")
+  segments   segments @relation(fields: [segment_id], references: [id], map: "user_segments_ibfk_2")
+
+  @@id([user_id, segment_id])
+  @@index([segment_id], map: "segment_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_settings {
+  user_id                   BigInt @id @db.UnsignedBigInt
+  email_subscribe_news      Int    @default(0) @db.UnsignedTinyInt
+  email_subscribe_bonuses   Int    @default(0) @db.UnsignedTinyInt
+  email_subscribe_technical Int    @default(0) @db.UnsignedTinyInt
+  email_subscribe_financial Int    @default(0) @db.UnsignedTinyInt
+  sms_subscribe_news        Int    @default(0) @db.UnsignedTinyInt
+  sms_subscribe_bonuses     Int    @default(0) @db.UnsignedTinyInt
+  sms_subscribe_technical   Int    @default(0) @db.UnsignedTinyInt
+  sms_subscribe_financial   Int    @default(0) @db.UnsignedTinyInt
+  users                     users  @relation(fields: [user_id], references: [id], map: "user_settings_ibfk_1")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  id                   BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  email                String                @unique(map: "email") @db.VarChar(255)
+  login                String                @unique(map: "login") @db.VarChar(128)
+  pass                 String                @db.VarChar(60)
+  status               Int                   @default(0) @db.UnsignedTinyInt
+  kyc_status           Int                   @default(0) @db.UnsignedTinyInt
+  group                Int                   @default(0) @db.UnsignedTinyInt
+  token                String?               @unique(map: "token") @db.VarChar(36)
+  currency             String                @db.VarChar(3)
+  remember_token       String?               @db.VarChar(128)
+  balance              BigInt                @default(0) @db.UnsignedBigInt
+  bonus_balance        BigInt                @default(0) @db.UnsignedBigInt
+  wager_amount         BigInt                @default(0) @db.UnsignedBigInt
+  wager_need           BigInt                @default(0) @db.UnsignedBigInt
+  wager_bet_min        BigInt                @default(0) @db.UnsignedBigInt
+  wager_bet_max        BigInt                @default(0) @db.UnsignedBigInt
+  freespins_number     Int                   @default(0) @db.UnsignedInt
+  freespins_bet_amount BigInt                @default(0) @db.UnsignedBigInt
+  country              String                @db.VarChar(2)
+  lang                 String                @db.VarChar(2)
+  verified_email       Int                   @default(0) @db.UnsignedTinyInt
+  date_reg             DateTime              @default(now()) @db.Timestamp(0)
+  date_last_activity   DateTime              @db.Timestamp(0)
+  affiliate_campaigns  affiliate_campaigns[]
+  bets                 bets[]
+  blacklist_countries  blacklist_countries[]
+  blacklist_ip         blacklist_ip[]
+  bonus_users          bonus_users[]
+  reward_queue         reward_queue[]
+  transactions         transactions[]
+  user_affiliates      user_affiliates[]
+  user_auth            user_auth[]
+  user_favorite_games  user_favorite_games[]
+  user_files           user_files[]
+  user_limits          user_limits[]
+  user_profiles        user_profiles?
+  user_roles           user_roles[]
+  user_segments        user_segments[]
+  user_settings        user_settings?
+
+  @@index([currency], map: "currency")
+}
+
+model wins {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  type            String   @db.VarChar(16)
+  bet_id          BigInt   @db.UnsignedBigInt
+  provider_win_id String   @db.VarChar(32)
+  account         Int      @db.UnsignedTinyInt
+  amount          BigInt   @db.UnsignedBigInt
+  balance         BigInt   @db.UnsignedBigInt
+  date            DateTime @default(now()) @db.Timestamp(0)
+  bets            bets     @relation(fields: [bet_id], references: [id], map: "wins_ibfk_1")
+
+  @@index([bet_id], map: "bet-id")
+}
